@@ -37,7 +37,7 @@ suitable for importing into the main(root)
   * add 'target_compile_definitions' for directory specific files    
   * Link all the included 'subfolders' via 'target_link_libraries' directives    
 
-~~~~
+~~~python
 Example Arguments dict:
 def make_args(root=none):
     if root is None:
@@ -78,4 +78,4 @@ def make_args(root=none):
                             ['yet/another/lib/some/subfolder'],
                         ]
     return args
-~~~~
+~~~
