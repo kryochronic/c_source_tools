@@ -1,5 +1,6 @@
 # c_source_tools  
-MIT License  
+===
+## MIT License  
 
 Copyright (c) [2019] [Abhinav Tripathi] "mr dot a dot tripathi at gmail dot com"  
 
@@ -21,7 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  
 SOFTWARE.  
 
-Cmake Generator Source Core in Python.  
+## Cmake Generator Source Core in Python.  
 This software can be used to generate a Cmake Make include file(**args['CmakeIncludes']**)
 suitable for importing into the main(root)  
 'CmakeLists.txt' with the following features:  
@@ -37,8 +38,8 @@ suitable for importing into the main(root)
   * add 'target_compile_definitions' for directory specific files    
   * Link all the included 'subfolders' via 'target_link_libraries' directives    
 
+##  Example Arguments dict:
 ~~~python
-#  Example Arguments dict:
 def make_args(root=None):
     if root is None:
         root = os.getcwd()
