@@ -39,7 +39,7 @@ suitable for importing into the main(root)
 
 ~~~python
 #  Example Arguments dict:
-def make_args(root=none):
+def make_args(root=None):
     if root is None:
         root = os.getcwd()
     args['application_libs'] = {
