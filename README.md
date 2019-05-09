@@ -25,17 +25,17 @@ Cmake Generator Source Core in Python.
 This software can be used to generate a Cmake Make include file(**args['CmakeIncludes']**)
 suitable for importing into the main(root)  
 'CmakeLists.txt' with the following features:  
-    * Exclude file / folders as per exclude list paths  
-    * install header search paths as configured in arguments **args[application_libraries]**   
-      add 'add_library' directive as configured in the arguments for each subfolder,  
-        * recursively add each (sub)-subfolder via 'subdirs' if it contains Source  
-          files as specified by **args['pattern']**  
-        * Automatically generate the Library name & add all files in (sub)-subfolder  
-          to the subfolder named library name basis path  
-        * add a 'CmakeLists.txt' into the folder for each listed (sub)-subfolder  
-        * ignores files / paths as specified in argument via **args['exclude']**  
-    * add 'target_compile_definitions' for directory specific files    
-    * Link all the included 'subfolders' via 'target_link_libraries' directives    
+* Exclude file / folders as per exclude list paths  
+* install header search paths as configured in arguments **args[application_libraries]**   
+  add 'add_library' directive as configured in the arguments for each subfolder,  
+  * recursively add each (sub)-subfolder via 'subdirs' if it contains Source  
+    files as specified by **args['pattern']**  
+  * Automatically generate the Library name & add all files in (sub)-subfolder  
+    to the subfolder named library name basis path  
+  * add a 'CmakeLists.txt' into the folder for each listed (sub)-subfolder  
+  * ignores files / paths as specified in argument via **args['exclude']**  
+  * add 'target_compile_definitions' for directory specific files    
+  * Link all the included 'subfolders' via 'target_link_libraries' directives    
 
 `    Example Arguments dict:
 def make_args(root=none):
