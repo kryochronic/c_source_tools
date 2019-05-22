@@ -63,6 +63,8 @@ def make_args(root=none):
                                     }
     args['suf']     = ''
     args['pattern'] = ['*.c', '*.h', '*.S']
+    args['headers'] = ['.h']
+    args['sources'] = ['.c','.S']
     args['exclude'] =   [
                         #path to exclude
                         'binary',
@@ -91,8 +93,8 @@ import traceback
 from fnmatch import fnmatch
 from time import sleep
 from functools import reduce
-import importlib
-import importlib.util
+# import importlib
+# import importlib.util
 import sys
 
 
@@ -160,7 +162,7 @@ def make_cmake_includes_for_third_party_libs(args):
         make_cmake_includes_paths_list(includes_file_name, paths, lib_name, addsubdir=False, addlib=False)
 
 
-def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list):
+def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c','.S']):
     text = """
 target_sources({0}
                 PUBLIC
@@ -170,8 +172,9 @@ target_sources({0}
     file_entry_text = ' ' * 20 + '"${{CMAKE_CURRENT_SOURCE_DIR}}/{}"\n'
     c_files_list = []
     for x in files_list:
-        if '.h' not in x:
-            c_files_list.append(x)
+        for source_ext in source_exts:
+            if x.endswith(source_ext):
+                c_files_list.append(x)
 
     if len(c_files_list) > 0:
         files_list_to_write = list(map(lambda x: file_entry_text.format(x), c_files_list))
@@ -202,7 +205,12 @@ def make_cmake_lists_forfolder(args):
         make_cmake_includes_paths_list(includes_file_name, paths, pre, folder_flags=folder_flags)
         for path in files_list.keys():  # prepare CmakeLists for the library
             file_path = os.path.join(path, 'CmakeLists.txt')
-            make_cmake_lists_for_lib(pre, suf, file_path, files_list[path])
+            try:
+                os.remove(file_path)
+            except:
+                """file doesnt exist"""
+                pass
+            make_cmake_lists_for_lib(pre, suf, file_path, files_list[path],args['sources'])
 
     except Exception as e:
         traceback.print_exc()
@@ -219,15 +227,18 @@ def make_generate_cmake_project_includes(default_args):
     make_cmake_includes_for_third_party_libs(args)
     libs_dep_list = " "
     for sub_list in args['subfolders']:
-        sub = sub_list[0]
-        if len(sub_list) > 1:
-            args["current_folder_flags"] = sub_list[1]
-        else:
-            args["current_folder_flags"] = None
-        args['prefix']            = sub.replace('\\', '/').replace('/', '_')
-        libs_dep_list             = libs_dep_list + '\n\t' + (args['prefix'])
-        args['current_folder']    = os.path.join(args['root'], sub)
-        make_cmake_lists_forfolder(args)
+        if len(sub_list) > 0:
+            sub = sub_list[0]
+            if len(sub_list) > 1:
+                sub = sub_list[0]
+                args["current_folder_flags"] = sub_list[1]
+            else:
+                sub = sub_list[0]
+                args["current_folder_flags"] = None
+            args['prefix']            = sub.replace('\\', '/').replace('/', '_')
+            libs_dep_list             = libs_dep_list + '\n\t' + (args['prefix'])
+            args['current_folder']    = os.path.join(args['root'], sub)
+            make_cmake_lists_forfolder(args)
     
     text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.elf\n\t{}\n)"""
     print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list,includes_file_name))
@@ -239,7 +250,7 @@ def main(args_file_name, subfolders=None, path=None):
     args_file_name = normalise_path_to_unix(args_file_name)
     file_path, module_name = os.path.split(args_file_name)
     sys.path.append(file_path)
-    print("Importing {} from ".format(module_name, file_path))
+    print("Importing {} from {}".format(module_name, file_path))
     module = __import__(module_name.replace('.py', ''))
     default_args = module.cmake_list_file_args(subfolders=None, path=None).args
     make_generate_cmake_project_includes(default_args)
@@ -259,8 +270,8 @@ def parse_args_file_name(args_file=None):
 if __name__ == '__main__':
     try:
         from clize import run
-        rv = run(parse_args_file_name)
-        print(rv)
+        run(parse_args_file_name)
+        print("Done")
     except SystemExit as e:
         pass
 else:
