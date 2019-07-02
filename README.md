@@ -38,6 +38,8 @@ suitable for importing into the main(root)
   * add 'target_compile_definitions' for directory specific files    
   * Link all the included 'subfolders' via 'target_link_libraries' directives    
 
+##  Example in use
+Have a look around in the [AM335X-FreeRTOS-lwip|https://github.com/kryochronic/AM335X-FreeRTOS-lwip] to use the c\_source\_tools
 ##  Example Arguments dict:
 ~~~python
 def make_args(root=None):
