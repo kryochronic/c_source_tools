@@ -98,11 +98,6 @@ from functools import reduce
 import sys
 
 
-
-
-
-
-
 def normalise_path_to_unix(path):
     path = path.replace('\\', '/')
     if path.find('/') == 0:
@@ -138,7 +133,8 @@ def make_cmake_includes_paths_list(filepath, paths, lib_name, addsubdir=True, ad
     text_inc = '\tinclude_directories("${{PROJECT_SOURCE_DIR}}/{}")\n'
     text_sub = '\tsubdirs("${{PROJECT_SOURCE_DIR}}/{}")\n'
     text_add_lib = '\tadd_library({} "")\n'
-    text_add_lib_flags = '\ttarget_compile_definitions({} \n\t\tPRIVATE {}\n\t)\n' #{0} = name, {1} = flags
+    # {0} = name, {1} = flags
+    text_add_lib_flags = '\ttarget_compile_definitions({} \n\t\tPRIVATE {}\n\t)\n'
 
     paths = list(map(normalise_path_to_unix, paths))
     with open(filepath, "a") as f:
@@ -153,16 +149,31 @@ def make_cmake_includes_paths_list(filepath, paths, lib_name, addsubdir=True, ad
             for path in paths:
                 f.write(text_sub.format(path))
 
+def update_cmake_c_flags(filepath, flag):
+    c_flags_update_string = '\n#adding c-flags({0}) from arguments\n\tset(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -D{0}")\n'
+    with open(filepath, "a") as f:
+        f.write(c_flags_update_string.format(flag))
+
+def make_cmake_includes_for_cflags(args):
+    cflags_list = []
+    includes_file_name = os.path.join(args['root'], args['CmakeIncludes'])
+    if 'c-flags' in args.keys():
+        cflags_list = args['c-flags']
+    for flag in cflags_list:
+        update_cmake_c_flags(
+            includes_file_name, flag)
+
 
 def make_cmake_includes_for_third_party_libs(args):
     libnames = args['application_libs']
     includes_file_name = os.path.join(args['root'], args['CmakeIncludes'])
     for lib_name in libnames.keys():
         paths = libnames[lib_name]
-        make_cmake_includes_paths_list(includes_file_name, paths, lib_name, addsubdir=False, addlib=False)
+        make_cmake_includes_paths_list(
+            includes_file_name, paths, lib_name, addsubdir=False, addlib=False)
 
 
-def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c','.S']):
+def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c', '.S']):
     text = """
 target_sources({0}
                 PUBLIC
@@ -177,7 +188,8 @@ target_sources({0}
                 c_files_list.append(x)
 
     if len(c_files_list) > 0:
-        files_list_to_write = list(map(lambda x: file_entry_text.format(x), c_files_list))
+        files_list_to_write = list(
+            map(lambda x: file_entry_text.format(x), c_files_list))
         lines = reduce((lambda x, y: x + y), files_list_to_write)
 
         with open(filepath, "w") as f:
@@ -202,7 +214,8 @@ def make_cmake_lists_forfolder(args):
         includes_file_name = os.path.join(root, args['CmakeIncludes'])
         paths = list(map(lambda x: x.replace(root, ''), files_list.keys()))
         paths = list(map(lambda x: x.replace('\\', '/'), paths))
-        make_cmake_includes_paths_list(includes_file_name, paths, pre, folder_flags=folder_flags)
+        make_cmake_includes_paths_list(
+            includes_file_name, paths, pre, folder_flags=folder_flags)
         for path in files_list.keys():  # prepare CmakeLists for the library
             file_path = os.path.join(path, 'CmakeLists.txt')
             try:
@@ -210,7 +223,8 @@ def make_cmake_lists_forfolder(args):
             except:
                 """file doesnt exist"""
                 pass
-            make_cmake_lists_for_lib(pre, suf, file_path, files_list[path],args['sources'])
+            make_cmake_lists_for_lib(
+                pre, suf, file_path, files_list[path], args['sources'])
 
     except Exception as e:
         traceback.print_exc()
@@ -224,6 +238,7 @@ def make_generate_cmake_project_includes(default_args):
     includes_file_name = os.path.join(args['root'], args['CmakeIncludes'])
     with open(includes_file_name, "w") as f:
         f.write("")
+    make_cmake_includes_for_cflags(args)
     make_cmake_includes_for_third_party_libs(args)
     libs_dep_list = " "
     for sub_list in args['subfolders']:
@@ -235,13 +250,13 @@ def make_generate_cmake_project_includes(default_args):
             else:
                 sub = sub_list[0]
                 args["current_folder_flags"] = None
-            args['prefix']            = sub.replace('\\', '/').replace('/', '_')
-            libs_dep_list             = libs_dep_list + '\n\t' + (args['prefix'])
-            args['current_folder']    = os.path.join(args['root'], sub)
+            args['prefix'] = sub.replace('\\', '/').replace('/', '_')
+            libs_dep_list = libs_dep_list + '\n\t' + (args['prefix'])
+            args['current_folder'] = os.path.join(args['root'], sub)
             make_cmake_lists_forfolder(args)
-    
+
     text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.elf\n\t{}\n)"""
-    print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list,includes_file_name))
+    print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list, includes_file_name))
     with open(includes_file_name, "a+") as f:
         f.write(text_lib_dependencies.format(libs_dep_list))
 
@@ -255,6 +270,7 @@ def main(args_file_name, subfolders=None, path=None):
     default_args = module.cmake_list_file_args(subfolders=None, path=None).args
     make_generate_cmake_project_includes(default_args)
 
+
 def parse_args_file_name(args_file=None):
     """Looks for arguments file in the cli arguments.
 
@@ -266,6 +282,7 @@ def parse_args_file_name(args_file=None):
     else:
         print("No args file supplied. Please supply args_file")
         return 'Phat Gaya'
+
 
 if __name__ == '__main__':
     try:
