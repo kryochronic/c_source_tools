@@ -41,16 +41,17 @@ header = """/*
     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
     OF SUCH DAMAGE.
 
-    Copyright (c) {} GREY ORANGE ROBOTICS (INDIA) PRIVATE LIMITED.
+    Copyright (c) {} {}.
     All Rights Reserved.
 */
 """
 configDict = {
-    "modules": nav_modules,
+    "modules": modules,
     "moduledesc": moduledesc,
     "author": "Abhinav Tripathi",
     "org": "Grey Orange (India) Pvt Ltd",
     "email": "abhinav.t[at]greyorange.sg",
+    "copyright": "Abhinav Tripathi",
     "header": header,
     "disclaimer": "",
     "license": "MIT",
@@ -80,7 +81,7 @@ def createFilesWithSections(generate_path, fileName, desc, sectionsList, configD
     with open(generate_path + fileName, "w") as f:
         f.write(configDict["moduledesc"].format(fileName, desc))
         f.write(configDict["header"].format(
-            configDict["author"], configDict["email"], copy_right_year))
+            configDict["author"], configDict["email"], copy_right_year,configDict["copyright"]))
         f.write("#ifndef {0}\n#define {0}\n".format(ifdefgaurd))
         for sectionName in sectionsList:
             section = sectionName
