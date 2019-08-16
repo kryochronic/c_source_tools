@@ -77,12 +77,17 @@ def createFilesWithSections(generate_path, fileName, desc, sectionsList, configD
         ifdefgaurd = ifdefgaurd + "_H"
     else:
         ifdefgaurd = ifdefgaurd + "_C"
+
     copy_right_year = time.strftime("%Y", time.localtime())
     with open(generate_path + fileName, "w") as f:
         f.write(configDict["moduledesc"].format(fileName, desc))
         f.write(configDict["header"].format(
             configDict["author"], configDict["email"], copy_right_year,configDict["copyright"]))
-        f.write("#ifndef {0}\n#define {0}\n".format(ifdefgaurd))
+        if ".h" in fileName:
+            f.write("#ifndef {0}\n#define {0}\n".format(ifdefgaurd))
+        else:
+            f.write("#ifndef {0}\n#define {0}\n#define __FILENAME_WO_PATH__ \"{1}\"\n".format(ifdefgaurd,fileName))
+            
         for sectionName in sectionsList:
             section = sectionName
             sectionLength = len(section)
@@ -93,7 +98,6 @@ def createFilesWithSections(generate_path, fileName, desc, sectionsList, configD
                                       section.upper() + " "*(sectionLinePadLen + offCenter)))
             f.write("/*{}*/\n\n\n".format("*"*configDict["lastColumn"]))
         f.write("#endif /* #ifndef {0} */\n".format(ifdefgaurd))
-
 
 def main(configDict=configDict):
     path_prefix = configDict["path_prefix"]
