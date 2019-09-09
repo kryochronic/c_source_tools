@@ -132,7 +132,8 @@ def make_cmake_includes_paths_list(filepath, paths, lib_name, addsubdir=True, ad
     text_lib_name = """#adding entries for {}\n"""
     text_inc = '\tinclude_directories("${{PROJECT_SOURCE_DIR}}/{}")\n'
     text_sub = '\tsubdirs("${{PROJECT_SOURCE_DIR}}/{}")\n'
-    text_add_lib = '\tadd_library({} "")\n'
+    text_add_lib = '\tadd_library({0} "")\n'
+    text_add_target_properties = '\tset_target_properties({} PROPERTIES LINKER_LANGUAGE C)\n'
     # {0} = name, {1} = flags
     text_add_lib_flags = '\ttarget_compile_definitions({} \n\t\tPRIVATE {}\n\t)\n'
 
@@ -143,6 +144,7 @@ def make_cmake_includes_paths_list(filepath, paths, lib_name, addsubdir=True, ad
             f.write(text_inc.format(path))
         if True is addlib:
             f.write(text_add_lib.format(lib_name))
+            f.write(text_add_target_properties.format(lib_name))
             if folder_flags is not None:
                 f.write(text_add_lib_flags.format(lib_name, folder_flags))
         if True is addsubdir:
@@ -217,7 +219,7 @@ def make_cmake_lists_forfolder(args):
         make_cmake_includes_paths_list(
             includes_file_name, paths, pre, folder_flags=folder_flags)
         for path in files_list.keys():  # prepare CmakeLists for the library
-            file_path = os.path.join(path, 'CmakeLists.txt')
+            file_path = os.path.join(path, 'CMakeLists.txt')
             try:
                 os.remove(file_path)
             except:
