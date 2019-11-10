@@ -178,7 +178,7 @@ def make_cmake_includes_for_third_party_libs(args):
 def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c', '.S']):
     text = """
 target_sources({0}
-                PUBLIC
+                PRIVATE
 {2}
             )
 """
@@ -257,7 +257,7 @@ def make_generate_cmake_project_includes(default_args):
             args['current_folder'] = os.path.join(args['root'], sub)
             make_cmake_lists_forfolder(args)
 
-    text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.elf\n\t{}\n)"""
+    text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.${{BUILD_EXT}}\n\t{}\n)"""
     print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list, includes_file_name))
     with open(includes_file_name, "a+") as f:
         f.write(text_lib_dependencies.format(libs_dep_list))
