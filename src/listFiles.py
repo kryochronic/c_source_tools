@@ -97,6 +97,7 @@ from functools import reduce
 # import importlib.util
 import sys
 
+issues_list = []
 
 def normalise_path_to_unix(path):
     path = path.replace('\\', '/')
@@ -260,7 +261,9 @@ def make_generate_cmake_project_includes(default_args):
                                 args["CMAKE_SOURCE_PROPERTY"] = flag
                             else:
                                 args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
-                                print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC",token)
+                                issue = "{} : token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC".format(sub,token)
+                                issues_list.append(issue)
+                                print(issue)
                         except Exception as e:
                             print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE")
                             raise e
@@ -274,10 +277,11 @@ def make_generate_cmake_project_includes(default_args):
             if "CMAKE_SOURCE_PROPERTY" not in args.keys():
                 if 'target_add_source_default' in args.keys():
                     target_add_source_default = args['target_add_source_default']
+                if target_add_source_default in ["PUBLIC","PRIVATE"]:
+                    args["CMAKE_SOURCE_PROPERTY"] = target_add_source_default
+                else:
                     print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC",target_add_source_default)
                     target_add_source_default = "PUBLIC"
-                if target_add_source_default in ["PUBLIC","PRIVATE"]:
-                args["CMAKE_SOURCE_PROPERTY"] = target_add_source_default
             
             args['prefix'] = sub.replace('\\', '/').replace('/', '_')
             libs_dep_list = libs_dep_list + '\n\t' + (args['prefix'])
@@ -288,6 +292,11 @@ def make_generate_cmake_project_includes(default_args):
     print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list, includes_file_name))
     with open(includes_file_name, "a+") as f:
         f.write(text_lib_dependencies.format(libs_dep_list))
+    if len(issues_list) > 0:
+        print('{} Issue(s) / Warning(s) Found\n--<Listed Below>--\n'.format(len(issues_list)))
+        issue_no = 1
+        for issue in issues_list:
+            print('\t{}: {}'.format(issue_no,issue))
 
 
 def main(args_file_name, subfolders=None, path=None):
