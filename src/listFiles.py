@@ -237,6 +237,7 @@ def make_cmake_lists_forfolder(args):
 
 def make_generate_cmake_project_includes(default_args):
     args = default_args
+    target_add_source_default = "PUBLIC"
     includes_file_name = os.path.join(args['root'], args['CmakeIncludes'])
     with open(includes_file_name, "w") as f:
         f.write("")
@@ -259,7 +260,7 @@ def make_generate_cmake_project_includes(default_args):
                                 args["CMAKE_SOURCE_PROPERTY"] = flag
                             else:
                                 args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
-                                print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC")
+                                print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC",token)
                         except Exception as e:
                             print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE")
                             raise e
@@ -267,12 +268,16 @@ def make_generate_cmake_project_includes(default_args):
             else:
                 sub = sub_list[0]
                 args["current_folder_flags"] = None
-                args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
             # Failsafes
             if "current_folder_flags" not in args.keys():
                 args["current_folder_flags"] = None
             if "CMAKE_SOURCE_PROPERTY" not in args.keys():
-                args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
+                if 'target_add_source_default' in args.keys():
+                    target_add_source_default = args['target_add_source_default']
+                    print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC",target_add_source_default)
+                    target_add_source_default = "PUBLIC"
+                if target_add_source_default in ["PUBLIC","PRIVATE"]:
+                args["CMAKE_SOURCE_PROPERTY"] = target_add_source_default
             
             args['prefix'] = sub.replace('\\', '/').replace('/', '_')
             libs_dep_list = libs_dep_list + '\n\t' + (args['prefix'])
