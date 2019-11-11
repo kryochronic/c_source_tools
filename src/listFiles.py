@@ -175,10 +175,10 @@ def make_cmake_includes_for_third_party_libs(args):
             includes_file_name, paths, lib_name, addsubdir=False, addlib=False)
 
 
-def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c', '.S']):
+def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c', '.S'],visibility="PUBLIC"):
     text = """
 target_sources({0}
-                PRIVATE
+                {3}
 {2}
             )
 """
@@ -195,7 +195,7 @@ target_sources({0}
         lines = reduce((lambda x, y: x + y), files_list_to_write)
 
         with open(filepath, "w") as f:
-            f.write(text.format(prefix, suffix, lines))
+            f.write(text.format(prefix, suffix, lines,visibility))
 
 
 def make_cmake_lists_forfolder(args):
@@ -226,7 +226,7 @@ def make_cmake_lists_forfolder(args):
                 """file doesnt exist"""
                 pass
             make_cmake_lists_for_lib(
-                pre, suf, file_path, files_list[path], args['sources'])
+                pre, suf, file_path, files_list[path], args['sources'],args["CMAKE_SOURCE_PROPERTY"])
 
     except Exception as e:
         traceback.print_exc()
@@ -248,10 +248,32 @@ def make_generate_cmake_project_includes(default_args):
             sub = sub_list[0]
             if len(sub_list) > 1:
                 sub = sub_list[0]
-                args["current_folder_flags"] = sub_list[1]
+                args["current_folder_flags"] = ""
+                for token in sub_list:
+                    if "-D" in token:
+                        args["current_folder_flags"] += token
+                    if "CMAKE_SOURCE_PROPERTY" in token:
+                        try:
+                            flag  = token.split(":")[1]
+                            if flag in ["PUBLIC","PRIVATE"]:
+                                args["CMAKE_SOURCE_PROPERTY"] = flag
+                            else:
+                                args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
+                                print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE, setting to PUBLIC")
+                        except Exception as e:
+                            print("token {} is not in format CMAKE_SOURCE_PROPERTY:PUBLIC/PRIVATE")
+                            raise e
+                
             else:
                 sub = sub_list[0]
                 args["current_folder_flags"] = None
+                args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
+            # Failsafes
+            if "current_folder_flags" not in args.keys():
+                args["current_folder_flags"] = None
+            if "CMAKE_SOURCE_PROPERTY" not in args.keys():
+                args["CMAKE_SOURCE_PROPERTY"] = "PUBLIC"
+            
             args['prefix'] = sub.replace('\\', '/').replace('/', '_')
             libs_dep_list = libs_dep_list + '\n\t' + (args['prefix'])
             args['current_folder'] = os.path.join(args['root'], sub)
