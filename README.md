@@ -38,10 +38,10 @@ suitable for importing into the main(root)
   * add 'target_compile_definitions' for directory specific files    
   * Link all the included 'subfolders' via 'target_link_libraries' directives    
 
-# c_source_tools in detail
+## c_source_tools in detail
 <!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
 
-# Arguments Keyword Glossary
+### Arguments Keyword Glossary
 
 |Key word|type|Description|Quick Example|
 |---|---|---|---|
@@ -57,22 +57,14 @@ suitable for importing into the main(root)
 |CmakeIncludes|string|Name of the file to generate|`'CmakeIncludes.cmake'`
 |subfolders|list|Target include folders to parse for files as per 'pattern'<br>Format of sublist:<br>* folder:required<br>* #defines: optional|`[['src','TARGET_HW=AVR],]'`|<br>
 
-# Requirements to be added
+## Requirements to be added
+
 |Key word|type|Quick Example|
 |---|---|---|
 |asm_source_ext|string|`args['asm_source_ext'] = ['*.s']`<br>`args['asm_source_ext'] = ['*.s','*.s90','*.S']`|<br>
+|app_targets|list|Under Dev|<br>
 
-{WIP}
-
-# Arguments in detail
-## root - Directory Start Point
-Defined by the keyword '**root**'
-
-## c-flags - Application wide Complie Flags
-
-These are global symbols to be defined on the commandline with a '-D'
-
-## Multiple Targets
+### Multiple Targets
 
 For a Project **P1** and a library **L1** and a target '**T1**', c_source_tools will generate a **Target Library** definition with the name '**L1.T1**' for Target '**${PROJECT}.T1**'
 Example below:
@@ -86,24 +78,35 @@ add_target(${PROJECT}.+3V+LIC+IRR)
 Format required in **c_source_tools** args file: as below
 |Key word|type|Quick Example|
 |---|---|---|
-|APP_TARGETS |list of dicts| `{ 'app_targets' : [{ 'T1' : { TYPE:PUBLIC } , { FLAGS:['List','of','Target','Options'] } }]`
-||| 
+|APP_TARGETS |list of dicts| `{ 'app_targets' : [{ 'T1' : { TYPE:PUBLIC } , { FLAGS:['List','of','Target','Options'] } }]`|
 
-An Example in clarity!
+An Example in for usage!
+
 ```Python
 { 'app_targets' : [{ '+3V+LIC+IRR' : { TYPE:PUBLIC } , { FLAGS:['--preinclude ${PROJECT_SOURCE_DIR}/+3V-IRR-LIC.txt']} }]
 ```
 
+### Assembler Source Separation
 
-## Assembler Source Separation
 Flags are needed for separating the Assembler files from C Files as the compiler unlike GCC does not invoke the assembler. Let assembler files be compiled into another library all together.
 
+## Arguments in detail
 
+### root - Directory Start Point
 
-##  Example in use
+Defined by the keyword '**root**'
+
+### c-flags - Application wide Complie Flags
+
+These are global symbols to be defined on the commandline with a '-D'
+
+## Example in use
+
 Have a look around in the [AM335X-FreeRTOS-lwip|https://github.com/kryochronic/AM335X-FreeRTOS-lwip] to use the c\_source\_tools
-##  Example Arguments dict:
-~~~python
+
+### Example Arguments dict:
+
+```Python
 def make_args(root=None):
     if root is None:
         root = os.getcwd()
@@ -143,4 +146,4 @@ def make_args(root=None):
                             ['yet/another/lib/some/subfolder'],
                         ]
     return args
-~~~
+```
