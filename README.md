@@ -75,7 +75,8 @@ target_compile_options(L1.+3V+LIC+IRR PUBLIC "--preinclude \"${PROJECT_SOURCE_DI
 add_target(${PROJECT}.+3V+LIC+IRR)
 ```
 
-Format required in **c_source_tools** args file: as below
+Format required in **c_source_tools** args file as below:
+
 |Key word|type|Quick Example|
 |---|---|---|
 |APP_TARGETS |list of dicts| `{ 'app_targets' : [{ 'T1' : { TYPE:PUBLIC } , { FLAGS:['List','of','Target','Options'] } }]`|
