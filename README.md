@@ -38,6 +38,68 @@ suitable for importing into the main(root)
   * add 'target_compile_definitions' for directory specific files    
   * Link all the included 'subfolders' via 'target_link_libraries' directives    
 
+# c_source_tools in detail
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+
+# Arguments Keyword Glossary
+
+|Key word|type|Description|Quick Example|
+|---|---|---|---|
+|root |path |Root of the Project.<br>All paths are relative to this| `args['c-flags'] = os.cwd()`<br>`args['c-flags'] = /home/me/myself/and/irene`
+|c-flags |list|Tokens to be defined with '-D'| `args['c-flags'] = [`<br>`                                 "__IAR_SYSTEMS_ICC__=1",`<br>`                              ] `|
+|prefix|string|Unused| NA
+|application_libs|dict|Include Paths to include with -I|`{`<br>`'application':   [`<br>`     'src/inc',`<br>`    'src/prt',`<br>`],`<br>`}`
+|suf|path|Unused||
+|pattern|list|Pattern of files to look for|example `[*.s,*.S,*.c,*.h]`|
+|headers|list|Extension of Header files, so as to not add to the Cmake add_sources directive|`[*.h,*.hpp]`
+|sources|list|Extension of Header files, so as to add to the Cmake add_sources directive|`[*.c,*.s,*.S]`|
+|exclude|list|Patterns to ignore in the path|`[*.c,*.s,*.S]`|   
+|CmakeIncludes|string|Name of the file to generate|`'CmakeIncludes.cmake'`
+|subfolders|list|Target include folders to parse for files as per 'pattern'<br>Format of sublist:<br>* folder:required<br>* #defines: optional|`[['src','TARGET_HW=AVR],]'`|<br>
+
+# Requirements to be added
+|Key word|type|Quick Example|
+|---|---|---|
+|asm_source_ext|string|`args['asm_source_ext'] = ['*.s']`<br>`args['asm_source_ext'] = ['*.s','*.s90','*.S']`|<br>
+
+{WIP}
+
+# Arguments in detail
+## root - Directory Start Point
+Defined by the keyword '**root**'
+
+## c-flags - Application wide Complie Flags
+
+These are global symbols to be defined on the commandline with a '-D'
+
+## Multiple Targets
+
+For a Project **P1** and a library **L1** and a target '**T1**', c_source_tools will generate a **Target Library** definition with the name '**L1.T1**' for Target '**${PROJECT}.T1**'
+Example below:
+
+```CMake
+add_library(L1.+3V+LIC+IRR "")
+target_compile_options(L1.+3V+LIC+IRR PUBLIC "--preinclude \"${PROJECT_SOURCE_DIR}/+3V-IRR-LIC.txt\"")
+add_target(${PROJECT}.+3V+LIC+IRR)
+```
+
+Format required in **c_source_tools** args file: as below
+|Key word|type|Quick Example|
+|---|---|---|
+|APP_TARGETS |list of dicts| `{ 'app_targets' : [{ 'T1' : { TYPE:PUBLIC } , { FLAGS:['List','of','Target','Options'] } }]`
+||| 
+
+An Example in clarity!
+```Python
+{ 'app_targets' : [{ '+3V+LIC+IRR' : { TYPE:PUBLIC } , { FLAGS:['--preinclude ${PROJECT_SOURCE_DIR}/+3V-IRR-LIC.txt']} }]
+```
+
+
+## Assembler Source Separation
+Flags are needed for separating the Assembler files from C Files as the compiler unlike GCC does not invoke the assembler. Let assembler files be compiled into another library all together.
+
+
+
 ##  Example in use
 Have a look around in the [AM335X-FreeRTOS-lwip|https://github.com/kryochronic/AM335X-FreeRTOS-lwip] to use the c\_source\_tools
 ##  Example Arguments dict:
