@@ -96,8 +96,17 @@ from functools import reduce
 # import importlib
 # import importlib.util
 import sys
+import uuid 
 
 issues_list = []
+
+
+def get_app_targets(args):
+    targets = None
+    if 'app_targets' in args.keys():
+        targets = args['app_targets']
+    return targets
+    
 
 def normalise_path_to_unix(path):
     path = path.replace('\\', '/')
@@ -129,25 +138,49 @@ def list_files(root=os.getcwd(), exclude=[], pattern=['*.c', '*.h', '*.s']):
     return files_list
 
 
-def make_cmake_includes_paths_list(filepath, paths, lib_name, addsubdir=True, addlib=True, folder_flags=None):
+def make_cmake_includes_paths_list(filepath, paths, lib_name, addsubdir=True, addlib=True, folder_flags=None,targets=None):
     text_lib_name = """#adding entries for {}\n"""
     text_inc = '\tinclude_directories("${{PROJECT_SOURCE_DIR}}/{}")\n'
     text_sub = '\tsubdirs("${{PROJECT_SOURCE_DIR}}/{}")\n'
-    text_add_lib = '\tadd_library({0} "")\n'
-    text_add_target_properties = '\tset_target_properties({} PROPERTIES LINKER_LANGUAGE C)\n'
+    text_add_lib = '#adding new target_lib\n\tadd_library({0} "")\n'
+    
     # {0} = name, {1} = flags
-    text_add_lib_flags = '\ttarget_compile_definitions({} \n\t\tPRIVATE {}\n\t)\n'
-
+    fmt_text_add_compile_defs = '\ttarget_compile_definitions({} \n\t\tPRIVATE {}\n\t)\n'
+    fmt_text_compile_lang_generator = ' $<$<COMPILE_LANGUAGE:{}>:' # CXX,C,ASM CSharp etc ...
+    fmt_text_add_target_properties = '\tset_target_properties({} PROPERTIES LINKER_LANGUAGE {}})\n'
+    #$<$<COMPILE_LANGUAGE:CXX>:
+    fmt_text_add_compile_options = '\ttarget_compile_options({} {} {}\n\t)\n'
+    
     paths = list(map(normalise_path_to_unix, paths))
     with open(filepath, "a") as f:
         f.write(text_lib_name.format(lib_name))
         for path in paths:
             f.write(text_inc.format(path))
         if True is addlib:
-            f.write(text_add_lib.format(lib_name))
-            f.write(text_add_target_properties.format(lib_name))
-            if folder_flags is not None:
-                f.write(text_add_lib_flags.format(lib_name, folder_flags))
+            if len(targets) is 0:
+                f.write(text_add_lib.format(lib_name))
+                f.write(fmt_text_add_target_properties.format(lib_name))
+                if folder_flags is not None:
+                    f.write(fmt_text_add_compile_defs.format(lib_name, folder_flags))
+            else:    
+                for target in targets:
+                    lib_target = "{}.{}".format(lib_name,target)
+                    f.write(text_add_lib.format(lib_target))
+                    for option_dict in targets[target]:
+                        option_type = option_dict['TYPE']
+                        flags_lines = map(lambda x: "\n\t\t{} {}".format(option_type,x), option_dict['FLAGS'])
+                        flags_lines = ''.join(flags_lines)
+                        text_compile_lang_generator = ''
+                        if 'LANG' in option_dict:
+                            for lang in option_dict['LANG']:
+                                text_compile_lang_generator = fmt_text_compile_lang_generator.format(lang)
+                                f.write(fmt_text_add_compile_options.format(lib_target,text_compile_lang_generator,flags_lines))
+                    
+                    # text_add_target_properties = fmt_text_add_target_properties.format(lang)
+                    # f.write(text_add_target_properties.format(lib_target))
+                    if folder_flags is not None:
+                        f.write(fmt_text_add_compile_defs.format(lib_target, folder_flags))
+            
         if True is addsubdir:
             for path in paths:
                 f.write(text_sub.format(path))
@@ -173,31 +206,53 @@ def make_cmake_includes_for_third_party_libs(args):
     for lib_name in libnames.keys():
         paths = libnames[lib_name]
         make_cmake_includes_paths_list(
-            includes_file_name, paths, lib_name, addsubdir=False, addlib=False)
+            includes_file_name, paths, lib_name, addsubdir=False, addlib=False,targets=None)
 
 
-def make_cmake_lists_for_lib(prefix, suffix, filepath, files_list, source_exts=['.c', '.S'],visibility="PUBLIC"):
+def populate_target_sources_lang(prefix, suffix, filepath, files_list,source_exts,targets,uid,visibility="PUBLIC",lang="C"):
     text = """
 target_sources({0}
                 {3}
 {2}
             )
 """
-    file_entry_text = ' ' * 20 + '"${{CMAKE_CURRENT_SOURCE_DIR}}/{}"\n'
-    c_files_list = []
+    src_visibility = visibility
+    src_list_name_uid = "{}_src_list_{}".format(lang,uid).replace('-','')
+    src_list_var_cmake = "${{{}}}".format(src_list_name_uid)
+    text_source_list = "set({} {}\n)\n"
+    file_entry_text = '\n' + 20 * ' ' + '"${{CMAKE_CURRENT_SOURCE_DIR}}/{}"'
+    src_files_list = []
     for x in files_list:
         for source_ext in source_exts:
             if x.endswith(source_ext):
-                c_files_list.append(x)
+                src_files_list.append(x)
 
-    if len(c_files_list) > 0:
+    if len(src_files_list) > 0:
         files_list_to_write = list(
-            map(lambda x: file_entry_text.format(x), c_files_list))
+            map(lambda x: file_entry_text.format(x), src_files_list))
         lines = reduce((lambda x, y: x + y), files_list_to_write)
+        set_src_list = text_source_list.format(src_list_name_uid,lines)
+        with open(filepath, "a+") as f:
+            f.write(set_src_list)
+            if targets is None:
+                f.write(text.format(prefix, suffix, src_list_var_cmake,visibility))
+            else:
+                for target in targets:
+                    prefix_target = "{}.{}".format(prefix,target)
+                    f.write(text.format(prefix_target, suffix, src_list_var_cmake,src_visibility))
+                    
+def populate_target_sources(prefix, suffix, filepath, files_list, args):
+    source_exts=args['sources']
+    visibility=args["CMAKE_SOURCE_PROPERTY"]
+    targets = get_app_targets(args)
+    uid = uuid.uuid1().replace('-','')
+    lang = "C"
+    for ext in source_exts:
+        if ext in args['sources_asm']:
+            lang = 'ASM'
+        populate_target_sources_lang(prefix, suffix, filepath, files_list,ext,targets,uid,visibility,lang)
 
-        with open(filepath, "w") as f:
-            f.write(text.format(prefix, suffix, lines,visibility))
-
+    
 
 def make_cmake_lists_forfolder(args):
     pre = args['prefix']
@@ -214,11 +269,12 @@ def make_cmake_lists_forfolder(args):
             print('{}'.format(normalise_path_to_unix(key.replace(root, ''))))
             for filename in files_list[key]:
                 print('\t{}'.format(filename))
-        includes_file_name = os.path.join(root, args['CmakeIncludes'])
+        includes_file_name = get_cmake_includes_file_names(args)
         paths = list(map(lambda x: x.replace(root, ''), files_list.keys()))
         paths = list(map(lambda x: x.replace('\\', '/'), paths))
+        targets = get_app_targets(args)
         make_cmake_includes_paths_list(
-            includes_file_name, paths, pre, folder_flags=folder_flags)
+            includes_file_name, paths, pre, folder_flags=folder_flags,targets=targets)
         for path in files_list.keys():  # prepare CmakeLists for the library
             file_path = os.path.join(path, 'CMakeLists.txt')
             try:
@@ -227,7 +283,7 @@ def make_cmake_lists_forfolder(args):
                 """file doesnt exist"""
                 pass
             make_cmake_lists_for_lib(
-                pre, suf, file_path, files_list[path], args['sources'],args["CMAKE_SOURCE_PROPERTY"])
+                pre, suf, file_path, files_list[path], args)
 
     except Exception as e:
         traceback.print_exc()
@@ -235,13 +291,54 @@ def make_cmake_lists_forfolder(args):
         pass
     return includes_file_name
 
+def get_cmake_includes_file_names(args):
+    return os.path.join(args['root'], args['CmakeIncludes'])
+
+def make_generate_target_execs(args):
+    targets = get_app_targets(args)
+    includes_file_name = get_cmake_includes_file_names(args)
+
+    with open(includes_file_name, "a+") as f:
+        print('Adding the following targets as exectuables into {}'.format(includes_file_name))
+        if targets is None:
+            print('Single Target\n')
+            text_add_exec = """\n\tadd_executable(${{PROJECT_NAME}}.${{BUILD_EXT}} "")"""
+            f.write(text_add_exec)
+        else:
+            targets_count = 0 
+            text_add_exec = """\n#Adding targetExec #{}\n\tadd_executable(${{PROJECT_NAME}}.{}.${{BUILD_EXT}} "")\n"""
+            for target in targets:
+                print('Add Target:[{}]\n'.format(target))
+                f.write(text_add_exec.format(targets_count,target))
+                targets_count += 1
+
+
+
+def make_generate_target_link_libs(args):
+    targets = get_app_targets(args)
+    includes_file_name = get_cmake_includes_file_names(args)
+    libs_dep_list = args['lib_dep_list']
+    with open(includes_file_name, "a+") as f:
+        if targets is None:
+            text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.${{BUILD_EXT}}\n\t{}\n)"""
+            print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list, includes_file_name))
+            f.write(text_lib_dependencies.format(libs_dep_list))
+        else:
+            text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.{}.${{BUILD_EXT}}\n\t{}\n)"""
+            for target in targets:
+                libs_target_list =  ["{}.{}".format(element,target) for element in libs_dep_list.strip().split('\n')]
+                libs_target = '\n\t'.join(libs_target_list)
+                print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_target , includes_file_name))
+                f.write(text_lib_dependencies.format(target,libs_target))
 
 def make_generate_cmake_project_includes(default_args):
     args = default_args
-    target_add_source_default = "PUBLIC"
-    includes_file_name = os.path.join(args['root'], args['CmakeIncludes'])
+    targets = get_app_targets(args)
+    target_add_source_default = "PUBLIC" 
+    includes_file_name = get_cmake_includes_file_names(args)
     with open(includes_file_name, "w") as f:
         f.write("")
+    make_generate_target_execs(args)
     make_cmake_includes_for_cflags(args)
     make_cmake_includes_for_third_party_libs(args)
     libs_dep_list = " "
@@ -285,13 +382,14 @@ def make_generate_cmake_project_includes(default_args):
             
             args['prefix'] = sub.replace('\\', '/').replace('/', '_')
             libs_dep_list = libs_dep_list + '\n\t' + (args['prefix'])
+            args['lib_dep_list'] = libs_dep_list
             args['current_folder'] = os.path.join(args['root'], sub)
             make_cmake_lists_forfolder(args)
+        
+    
+    
 
-    text_lib_dependencies = """\ntarget_link_libraries (${{PROJECT_NAME}}.${{BUILD_EXT}}\n\t{}\n)"""
-    print('Adding the following libs as dependencies -->\n\n{}\n\n\tinto {}\n\nThis Should link all your sources specified.\nEnjoy\n--<Abhinav Tripathi>"mr.a.tripathi@gmail.com"'.format(libs_dep_list, includes_file_name))
-    with open(includes_file_name, "a+") as f:
-        f.write(text_lib_dependencies.format(libs_dep_list))
+    make_generate_target_link_libs(args)
     if len(issues_list) > 0:
         print('{} Issue(s) / Warning(s) Found\n--<Listed Below>--\n'.format(len(issues_list)))
         issue_no = 1
